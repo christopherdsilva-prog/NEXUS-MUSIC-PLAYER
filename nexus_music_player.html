@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Music Player</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2300f2fe'/><stop offset='50%' stop-color='%239d4edd'/><stop offset='100%' stop-color='%23f72585'/></linearGradient></defs><rect width='100' height='100' rx='20' fill='%230a0d18'/><path d='M25,65 Q35,35 45,65 T65,65' fill='none' stroke='url(%23g)' stroke-width='6' stroke-linecap='round'/><circle cx='68' cy='40' r='8' fill='url(%23g)'/><path d='M74,40 L74,25' stroke='url(%23g)' stroke-width='5' stroke-linecap='round'/></svg>">
+
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        nexus: {
+                            bg: '#050712',
+                            card: 'rgba(18, 22, 41, 0.45)',
+                            border: 'rgba(157, 78, 221, 0.35)',
+                            accent: '#9d4edd',
+                            cyan: '#00f2fe',
+                            pink: '#f72585'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(7, 9, 19, 0.4);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(157, 78, 221, 0.6);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(247, 37, 133, 0.8);
+        }
+
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(10, 13, 28, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(157, 78, 221, 0.3);
+        }
+
+        .glass-player {
+            background: rgba(11, 14, 28, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(247, 37, 133, 0.4);
+            box-shadow: 0 10px 40px -10px rgba(157, 78, 221, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-card {
+            background: rgba(20, 25, 48, 0.35);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(30, 38, 70, 0.6);
+            border-color: rgba(0, 242, 254, 0.6);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -10px rgba(0, 242, 254, 0.4);
+        }
+
+        /* Glow Effects */
+        .glow-text {
+            text-shadow: 0 0 20px rgba(157, 78, 221, 0.9), 0 0 40px rgba(0, 242, 254, 0.7);
+        }
+
+        /* Animated Gradients */
+        .bg-gradient-nexus {
+            background: linear-gradient(135deg, #00f2fe 0%, #9d4edd 50%, #f72585 100%);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #00f2fe 0%, #a259ff 50%, #f72585 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Equalizer Bar Keyframes */
+        @keyframes eqBar {
+
+            0%,
+            100% {
+                height: 4px;
+            }
+
+            50% {
+                height: 16px;
+            }
+        }
+
+        .eq-bar-1 {
+            animation: eqBar 0.8s ease-in-out infinite;
+        }
+
+        .eq-bar-2 {
+            animation: eqBar 1.1s ease-in-out infinite 0.2s;
+        }
+
+        .eq-bar-3 {
+            animation: eqBar 0.7s ease-in-out infinite 0.4s;
+        }
+
+        .eq-bar-4 {
+            animation: eqBar 0.9s ease-in-out infinite 0.1s;
+        }
+
+        /* Custom Input Range */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            height: 5px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #00f2fe;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00f2fe;
+        }
+    </style>
+</head>
+
+<body class="bg-nexus-bg text-white font-sans overflow-hidden select-none h-screen w-screen flex flex-col">
+
+    <!-- VIVID STARFIELD & NEBULA CANVAS -->
+    <canvas id="bg-canvas" class="fixed inset-0 z-0 pointer-events-none opacity-100"></canvas>
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#050711] transition-opacity duration-1000">
+        <div class="relative flex flex-col items-center">
+            <div class="relative w-36 h-36 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-2 border-cyan-400/40 animate-ping"></div>
+                <svg class="w-20 h-20 drop-shadow-[0_0_25px_rgba(157,78,221,0.9)]" viewBox="0 0 120 120">
+                    <defs>
+                        <linearGradient id="splashGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#00f2fe" />
+                            <stop offset="50%" stop-color="#9d4edd" />
+                            <stop offset="100%" stop-color="#f72585" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M 20,65 Q 40,25 60,65 T 100,65" fill="none" stroke="url(#splashGrad)" stroke-width="8"
+                        stroke-linecap="round" />
+                    <circle cx="85" cy="35" r="12" fill="url(#splashGrad)" />
+                    <path d="M 94,35 L 94,18 L 110,12" stroke="url(#splashGrad)" stroke-width="6" stroke-linecap="round"
+                        fill="none" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-extrabold tracking-widest mt-4 text-gradient glow-text">NEXUS</h1>
+            <p class="text-[10px] text-purple-300/80 tracking-[0.3em] uppercase mt-1">Music Player</p>
+            <div class="w-40 h-1 bg-white/10 rounded-full mt-6 overflow-hidden">
+                <div id="splash-progress" class="h-full bg-gradient-nexus w-0 transition-all duration-300"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-container"
+        class="relative z-10 flex flex-col md:flex-row flex-1 overflow-hidden opacity-0 transition-opacity duration-700">
+
+        <!-- DESKTOP SIDEBAR -->
+        <aside class="w-64 glass-panel flex-col justify-between p-4 z-30 hidden md:flex border-r border-white/10 pb-24">
+            <div>
+                <div class="flex items-center space-x-3 mb-6 cursor-pointer" onclick="switchTab('home')">
+                    <svg class="w-8 h-8 drop-shadow-[0_0_12px_rgba(0,242,254,0.8)]" viewBox="0 0 120 120">
+                        <defs>
+                            <linearGradient id="sideGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00f2fe" />
+                                <stop offset="50%" stop-color="#9d4edd" />
+                                <stop offset="100%" stop-color="#f72585" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M 20,65 Q 40,25 60,65 T 100,65" fill="none" stroke="url(#sideGrad)" stroke-width="9"
+                            stroke-linecap="round" />
+                        <circle cx="85" cy="35" r="11" fill="url(#sideGrad)" />
+                        <path d="M 93,35 L 93,18" stroke="url(#sideGrad)" stroke-width="6" stroke-linecap="round" />
+                    </svg>
+                    <div>
+                        <h1 class="text-xl font-black tracking-wider text-white">NEXUS</h1>
+                        <p class="text-[8px] uppercase tracking-[0.2em] text-cyan-400 font-semibold">Music Player</p>
+                    </div>
+                </div>
+
+                <nav class="space-y-1.5">
+                    <button onclick="switchTab('home')" id="nav-home"
+                        class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all bg-purple-600/40 text-white border border-purple-500/40">
+                        <i class="fa-solid fa-house text-base text-cyan-400"></i>
+                        <span>Home</span>
+                    </button>
+                    <button onclick="switchTab('library')" id="nav-library"
+                        class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                        <i class="fa-solid fa-compact-disc text-base text-purple-400"></i>
+                        <span>My Music</span>
+                    </button>
+                    <button onclick="switchTab('favorites')" id="nav-favorites"
+                        class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                        <i class="fa-solid fa-heart text-base text-pink-500"></i>
+                        <span>Favorites</span>
+                    </button>
+                    <button onclick="switchTab('playlists')" id="nav-playlists"
+                        class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                        <i class="fa-solid fa-bars-staggered text-base text-blue-400"></i>
+                        <span>Playlists</span>
+                    </button>
+                    <button onclick="switchTab('settings')" id="nav-settings"
+                        class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                        <i class="fa-solid fa-gear text-base text-emerald-400"></i>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="pt-3 border-t border-white/15">
+                <label for="audio-upload"
+                    class="cursor-pointer w-full flex items-center justify-center space-x-2 py-3 px-3 rounded-xl bg-gradient-nexus text-white font-extrabold text-xs shadow-[0_0_15px_rgba(157,78,221,0.5)] border border-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+                    <span>Add Music</span>
+                </label>
+                <input type="file" id="audio-upload" accept="audio/*" multiple class="hidden"
+                    onchange="handleFileUpload(event)">
+            </div>
+        </aside>
+
+        <!-- MOBILE TOP HEADER & NAVIGATION BAR -->
+        <div class="md:hidden glass-panel flex items-center justify-between px-4 py-3 z-30 border-b border-white/10">
+            <div class="flex items-center space-x-2">
+                <svg class="w-7 h-7 drop-shadow-[0_0_10px_rgba(0,242,254,0.8)]" viewBox="0 0 120 120">
+                    <path d="M 20,65 Q 40,25 60,65 T 100,65" fill="none" stroke="url(#sideGrad)" stroke-width="9"
+                        stroke-linecap="round" />
+                    <circle cx="85" cy="35" r="11" fill="url(#sideGrad)" />
+                </svg>
+                <h1 class="text-lg font-black tracking-wider text-white">NEXUS</h1>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <label for="audio-upload-mob"
+                    class="cursor-pointer px-3 py-1.5 rounded-lg bg-gradient-nexus text-white font-bold text-xs flex items-center space-x-1 shadow">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Add</span>
+                </label>
+                <input type="file" id="audio-upload-mob" accept="audio/*" multiple class="hidden"
+                    onchange="handleFileUpload(event)">
+            </div>
+        </div>
+
+        <!-- MOBILE BOTTOM TAB BAR -->
+        <div
+            class="md:hidden fixed bottom-20 left-3 right-3 glass-panel rounded-2xl flex items-center justify-around py-2.5 z-30 border border-white/15">
+            <button onclick="switchTab('home')"
+                class="mobile-tab-btn flex flex-col items-center text-cyan-400 text-[10px]" id="mob-nav-home">
+                <i class="fa-solid fa-house text-base"></i>
+                <span>Home</span>
+            </button>
+            <button onclick="switchTab('library')"
+                class="mobile-tab-btn flex flex-col items-center text-gray-400 text-[10px]" id="mob-nav-library">
+                <i class="fa-solid fa-compact-disc text-base"></i>
+                <span>Library</span>
+            </button>
+            <button onclick="switchTab('favorites')"
+                class="mobile-tab-btn flex flex-col items-center text-gray-400 text-[10px]" id="mob-nav-favorites">
+                <i class="fa-solid fa-heart text-base"></i>
+                <span>Favs</span>
+            </button>
+            <button onclick="switchTab('playlists')"
+                class="mobile-tab-btn flex flex-col items-center text-gray-400 text-[10px]" id="mob-nav-playlists">
+                <i class="fa-solid fa-bars-staggered text-base"></i>
+                <span>Lists</span>
+            </button>
+            <button onclick="switchTab('settings')"
+                class="mobile-tab-btn flex flex-col items-center text-gray-400 text-[10px]" id="mob-nav-settings">
+                <i class="fa-solid fa-gear text-base"></i>
+                <span>Settings</span>
+            </button>
+        </div>
+
+        <!-- MAIN CONTENT VIEW -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+            <!-- DESKTOP TOP HEADER -->
+            <header
+                class="h-16 px-6 hidden md:flex items-center justify-between z-10 glass-panel border-b border-white/10">
+                <div class="relative w-full max-w-sm">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 text-xs"></i>
+                    <input type="text" id="search-input" onkeyup="handleSearch(this.value)"
+                        placeholder="Search songs, artists..."
+                        class="w-full bg-white/10 border border-white/15 rounded-full py-2 pl-10 pr-4 text-xs text-white placeholder-gray-300 focus:outline-none focus:border-cyan-400 transition-all">
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-2 bg-white/10 border border-white/15 rounded-full px-3 py-1">
+                        <div
+                            class="w-6 h-6 rounded-full bg-gradient-nexus flex items-center justify-center text-[10px] font-bold">
+                            US</div>
+                        <span class="text-xs font-semibold pr-1">User</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- SCROLLABLE CONTENT AREA WITH WATERMARK LOGO -->
+            <div id="main-scroll-area" class="flex-1 overflow-y-auto p-4 md:p-8 relative pb-40 md:pb-32">
+
+                <!-- CENTER WATERMARK LOGO -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0 opacity-40 transition-opacity duration-700"
+                    id="inner-watermark">
+                    <svg class="w-[320px] md:w-[500px] h-[200px] md:h-[300px] filter drop-shadow-[0_0_50px_rgba(0,242,254,0.6)]"
+                        viewBox="0 0 500 250">
+                        <defs>
+                            <linearGradient id="wmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00f2fe" />
+                                <stop offset="50%" stop-color="#9d4edd" />
+                                <stop offset="100%" stop-color="#f72585" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M 50,150 L 150,80 L 250,160 L 350,70 L 450,150" fill="none" stroke="url(#wmGrad)"
+                            stroke-width="2.5" stroke-dasharray="6 6" opacity="0.8" />
+                        <path d="M 80,140 Q 140,40 200,140 T 320,140" fill="none" stroke="url(#wmGrad)"
+                            stroke-width="14" stroke-linecap="round" />
+                        <circle cx="340" cy="90" r="28" fill="url(#wmGrad)" />
+                        <path d="M 360,90 L 360,35 L 395,25" stroke="url(#wmGrad)" stroke-width="12"
+                            stroke-linecap="round" fill="none" />
+                    </svg>
+                    <span
+                        class="text-4xl md:text-7xl font-black tracking-[0.35em] text-gradient mt-2 opacity-90 glow-text">NEXUS</span>
+                    <span
+                        class="text-[10px] md:text-xs tracking-[0.5em] text-cyan-300 uppercase font-semibold mt-1">Personal
+                        Audio Engine</span>
+                </div>
+
+                <!-- VIEW 1: HOME -->
+                <section id="view-home" class="relative z-10 space-y-6">
+                    <div
+                        class="rounded-2xl md:rounded-3xl p-6 md:p-8 relative overflow-hidden bg-gradient-to-r from-purple-900/50 via-indigo-900/30 to-transparent border border-purple-500/30">
+                        <div class="relative z-10 max-w-xl">
+                            <span
+                                class="px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 text-[10px] font-bold tracking-widest uppercase border border-cyan-400/30">Welcome
+                                back</span>
+                            <h2 class="text-2xl md:text-4xl font-extrabold mt-2 text-white">WELCOME TO <span
+                                    class="text-gradient">NEXUS</span></h2>
+                            <p class="text-gray-200 mt-1.5 text-xs md:text-sm leading-relaxed">High performance offline
+                                music player with zero server dependency.</p>
+
+                            <div class="mt-4 flex items-center space-x-3">
+                                <label for="audio-upload-hero"
+                                    class="cursor-pointer px-5 py-2.5 rounded-full bg-gradient-nexus hover:opacity-90 text-white font-bold text-xs shadow-lg shadow-purple-900/50 flex items-center space-x-2">
+                                    <i class="fa-solid fa-folder-plus"></i>
+                                    <span>Upload MP3 Files</span>
+                                </label>
+                                <input type="file" id="audio-upload-hero" accept="audio/*" multiple class="hidden"
+                                    onchange="handleFileUpload(event)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg md:text-xl font-bold text-white mb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-clock-rotate-left text-cyan-400 text-sm"></i>
+                            <span>Recently Played</span>
+                        </h3>
+                        <div id="recent-grid"
+                            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5"></div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg md:text-xl font-bold text-white flex items-center space-x-2">
+                                <i class="fa-solid fa-music text-purple-400 text-sm"></i>
+                                <span>Your Music Library</span>
+                            </h3>
+                            <button onclick="switchTab('library')"
+                                class="text-xs text-cyan-400 hover:underline font-semibold">View All</button>
+                        </div>
+                        <div id="home-library-grid"
+                            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5"></div>
+                    </div>
+                </section>
+
+                <!-- VIEW 2: LIBRARY -->
+                <section id="view-library" class="relative z-10 space-y-5 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-extrabold text-white">My Music</h2>
+                            <p class="text-gray-300 text-xs">Manage and play your audio collection</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="audio-upload-lib"
+                                class="cursor-pointer px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center space-x-2">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Add Songs</span>
+                            </label>
+                            <input type="file" id="audio-upload-lib" accept="audio/*" multiple class="hidden"
+                                onchange="handleFileUpload(event)">
+                        </div>
+                    </div>
+                    <div id="full-library-list" class="space-y-2"></div>
+                </section>
+
+                <!-- VIEW 3: FAVORITES -->
+                <section id="view-favorites" class="relative z-10 space-y-5 hidden">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-extrabold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-heart text-pink-500 text-xl"></i>
+                            <span>Favorite Tracks</span>
+                        </h2>
+                        <p class="text-gray-300 text-xs">Your starred songs</p>
+                    </div>
+                    <div id="favorites-list" class="space-y-2"></div>
+                </section>
+
+                <!-- VIEW 4: PLAYLISTS -->
+                <section id="view-playlists" class="relative z-10 space-y-5 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-extrabold text-white">Playlists</h2>
+                            <p class="text-gray-300 text-xs">Custom mixes</p>
+                        </div>
+                        <button onclick="createNewPlaylist()"
+                            class="px-3.5 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs">New
+                            Playlist</button>
+                    </div>
+                    <div id="playlist-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+                </section>
+
+                <!-- VIEW 5: SETTINGS -->
+                <section id="view-settings" class="relative z-10 space-y-5 hidden max-w-xl">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-extrabold text-white">Settings</h2>
+                        <p class="text-gray-300 text-xs">Storage and player parameters</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl flex items-center justify-between border border-white/10">
+                        <div>
+                            <h4 class="font-bold text-white text-xs md:text-sm">Local Storage Usage</h4>
+                            <p class="text-[10px] md:text-xs text-gray-300 mt-0.5" id="storage-status">Calculating...
+                            </p>
+                        </div>
+                        <button onclick="clearAllData()"
+                            class="px-3 py-1.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/40 text-xs font-bold">Clear
+                            All</button>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- FLOATING GLASS PLAYER BAR -->
+    <div class="fixed bottom-16 md:bottom-4 left-3 right-3 md:left-72 md:right-4 z-40">
+        <div
+            class="glass-player rounded-2xl md:rounded-3xl p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-3 max-w-7xl mx-auto">
+
+            <div class="flex items-center space-x-3 w-full md:w-1/4">
+                <div
+                    class="relative w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden bg-purple-900/50 flex-shrink-0 border border-white/20">
+                    <div id="player-cover-fallback"
+                        class="w-full h-full flex items-center justify-center bg-gradient-nexus">
+                        <i class="fa-solid fa-music text-white text-lg"></i>
+                    </div>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h4 id="player-title" class="font-bold text-xs md:text-sm text-white truncate">No Song Selected</h4>
+                    <p id="player-artist" class="text-[10px] md:text-xs text-gray-300 truncate">Upload audio to begin
+                    </p>
+                </div>
+                <button onclick="toggleFavoriteCurrent()" id="player-fav-btn"
+                    class="text-gray-300 hover:text-pink-500 md:block hidden">
+                    <i class="fa-regular fa-heart text-base"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-col items-center w-full md:w-2/4 space-y-1.5">
+                <div class="flex items-center space-x-5">
+                    <button onclick="toggleShuffle()" id="shuffle-btn"
+                        class="text-gray-300 hover:text-cyan-400 text-xs"><i class="fa-solid fa-shuffle"></i></button>
+                    <button onclick="playPrev()" class="text-gray-200 hover:text-white text-xs"><i
+                            class="fa-solid fa-backward-step"></i></button>
+                    <button onclick="togglePlayPause()" id="play-pause-btn"
+                        class="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-nexus flex items-center justify-center text-white shadow-md hover:scale-105 transition-all">
+                        <i class="fa-solid fa-play text-xs translate-x-0.5"></i>
+                    </button>
+                    <button onclick="playNext()" class="text-gray-200 hover:text-white text-xs"><i
+                            class="fa-solid fa-forward-step"></i></button>
+                    <button onclick="toggleRepeat()" id="repeat-btn"
+                        class="text-gray-300 hover:text-cyan-400 text-xs"><i class="fa-solid fa-repeat"></i></button>
+                </div>
+
+                <div class="w-full flex items-center space-x-2 text-[10px] md:text-xs text-gray-300 font-mono">
+                    <span id="current-time">00:00</span>
+                    <div class="relative flex-1 h-6 flex items-center cursor-pointer" onclick="seekAudio(event)">
+                        <canvas id="waveform-canvas"
+                            class="absolute inset-0 w-full h-full opacity-90 pointer-events-none"></canvas>
+                        <input type="range" id="seek-bar" min="0" max="100" value="0"
+                            class="w-full z-10 opacity-0 cursor-pointer">
+                        <div class="absolute left-0 right-0 h-1 bg-white/20 rounded-full pointer-events-none">
+                            <div id="seek-fill" class="h-full bg-gradient-nexus rounded-full w-0"></div>
+                        </div>
+                    </div>
+                    <span id="total-duration">00:00</span>
+                </div>
+            </div>
+
+            <div class="hidden md:flex items-center justify-end space-x-3 w-1/4">
+                <div class="flex items-end space-x-1 h-4 px-2">
+                    <span class="w-1 bg-cyan-400 rounded-full eq-bar-1"></span>
+                    <span class="w-1 bg-purple-400 rounded-full eq-bar-2"></span>
+                    <span class="w-1 bg-pink-500 rounded-full eq-bar-3"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleMute()" id="mute-btn" class="text-gray-300 hover:text-white text-xs"><i
+                            class="fa-solid fa-volume-high"></i></button>
+                    <input type="range" id="volume-bar" min="0" max="1" step="0.01" value="0.8"
+                        oninput="setVolume(this.value)" class="w-16 cursor-pointer">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const DB_NAME = 'NexusMusicDB';
+        const DB_VERSION = 1;
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject();
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('songs')) db.createObjectStore('songs', { keyPath: 'id' });
+                };
+            });
+        }
+
+        function saveSongToDB(song) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('songs', 'readwrite');
+                tx.objectStore('songs').put(song);
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        function getAllSongsFromDB() {
+            return new Promise((resolve) => {
+                const tx = db.transaction('songs', 'readonly');
+                const req = tx.objectStore('songs').getAll();
+                req.onsuccess = () => resolve(req.result || []);
+            });
+        }
+
+        function deleteSongFromDB(id) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('songs', 'readwrite');
+                tx.objectStore('songs').delete(id);
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        let songs = [];
+        let favorites = new Set(JSON.parse(localStorage.getItem('nexus_favs') || '[]'));
+        let recentlyPlayed = [];
+        let currentSongIndex = -1;
+        let isPlaying = false;
+        let isShuffle = false;
+        let isRepeat = false;
+
+        const audio = new Audio();
+        let audioCtx, analyser, dataArray;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const progress = document.getElementById('splash-progress');
+            setTimeout(() => progress.style.width = '60%', 200);
+            try {
+                await initDB();
+                songs = await getAllSongsFromDB();
+            } catch (e) { }
+            setTimeout(() => progress.style.width = '100%', 500);
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                document.getElementById('app-container').style.opacity = '1';
+                setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 800);
+            }, 1000);
+
+            initCanvasBackground();
+            initWaveformVisualizer();
+            renderAllViews();
+            setupAudioListeners();
+        });
+
+        function setupAudioListeners() {
+            audio.addEventListener('timeupdate', () => {
+                if (!audio.duration) return;
+                document.getElementById('current-time').textContent = formatTime(audio.currentTime);
+                document.getElementById('total-duration').textContent = formatTime(audio.duration);
+                document.getElementById('seek-fill').style.width = (audio.currentTime / audio.duration) * 100 + '%';
+            });
+            audio.addEventListener('ended', () => { if (isRepeat) { audio.currentTime = 0; audio.play(); } else playNext(); });
+        }
+
+        function playSong(index) {
+            if (index < 0 || index >= songs.length) return;
+            currentSongIndex = index;
+            const song = songs[index];
+            audio.src = URL.createObjectURL(song.fileBlob);
+            audio.play();
+            isPlaying = true;
+            document.getElementById('player-title').textContent = song.title;
+            document.getElementById('player-artist').textContent = song.artist || 'Local Artist';
+            document.getElementById('play-pause-btn').querySelector('i').className = 'fa-solid fa-pause';
+            updateFavButtonState();
+            if (!recentlyPlayed.find(s => s.id === song.id)) {
+                recentlyPlayed.unshift(song);
+                if (recentlyPlayed.length > 5) recentlyPlayed.pop();
+                renderRecentlyPlayed();
+            }
+            setupWebAudio();
+            document.getElementById('inner-watermark').style.opacity = '0.70';
+        }
+
+        function togglePlayPause() {
+            if (songs.length === 0) return;
+            if (currentSongIndex === -1) { playSong(0); return; }
+            const playIcon = document.getElementById('play-pause-btn').querySelector('i');
+            if (isPlaying) {
+                audio.pause(); isPlaying = false;
+                playIcon.className = 'fa-solid fa-play translate-x-0.5';
+                document.getElementById('inner-watermark').style.opacity = '0.40';
+            } else {
+                audio.play(); isPlaying = true;
+                playIcon.className = 'fa-solid fa-pause';
+                document.getElementById('inner-watermark').style.opacity = '0.70';
+            }
+        }
+
+        function playNext() {
+            if (songs.length === 0) return;
+            if (isShuffle) playSong(Math.floor(Math.random() * songs.length));
+            else playSong((currentSongIndex + 1) % songs.length);
+        }
+
+        function playPrev() {
+            if (songs.length === 0) return;
+            playSong((currentSongIndex - 1 + songs.length) % songs.length);
+        }
+
+        function seekAudio(e) {
+            if (!audio.duration) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+        }
+
+        function setVolume(val) { audio.volume = val; }
+        function toggleMute() { audio.muted = !audio.muted; }
+        function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffle-btn').classList.toggle('text-cyan-400', isShuffle); }
+        function toggleRepeat() { isRepeat = !isRepeat; document.getElementById('repeat-btn').classList.toggle('text-cyan-400', isRepeat); }
+
+        function toggleFavorite(id, e) {
+            if (e) e.stopPropagation();
+            if (favorites.has(id)) favorites.delete(id); else favorites.add(id);
+            localStorage.setItem('nexus_favs', JSON.stringify([...favorites]));
+            renderAllViews();
+            updateFavButtonState();
+        }
+
+        function toggleFavoriteCurrent() {
+            if (currentSongIndex !== -1) toggleFavorite(songs[currentSongIndex].id);
+        }
+
+        function updateFavButtonState() {
+            if (currentSongIndex === -1) return;
+            const isFav = favorites.has(songs[currentSongIndex].id);
+            const icon = document.getElementById('player-fav-btn').querySelector('i');
+            icon.className = isFav ? 'fa-solid fa-heart text-pink-500 text-base' : 'fa-regular fa-heart text-base';
+        }
+
+        async function handleFileUpload(e) {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                if (!file.type.startsWith('audio/')) continue;
+                const songObj = {
+                    id: 'song_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    title: file.name.replace(/\.[^/.]+$/, ""),
+                    artist: 'Local Artist',
+                    album: 'Personal Library',
+                    fileBlob: file
+                };
+                await saveSongToDB(songObj);
+                songs.push(songObj);
+            }
+            renderAllViews();
+            if (currentSongIndex === -1 && songs.length > 0) playSong(0);
+        }
+
+        async function removeSong(id, e) {
+            e.stopPropagation();
+            await deleteSongFromDB(id);
+            songs = songs.filter(s => s.id !== id);
+            favorites.delete(id);
+            localStorage.setItem('nexus_favs', JSON.stringify([...favorites]));
+            renderAllViews();
+        }
+
+        function switchTab(tabName) {
+            ['home', 'library', 'favorites', 'playlists', 'settings'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                const deskNav = document.getElementById(`nav-${t}`);
+                if (deskNav) {
+                    deskNav.classList.remove('bg-purple-600/40', 'text-white', 'border', 'border-purple-500/40');
+                    deskNav.classList.add('text-gray-300');
+                }
+                const mobNav = document.getElementById(`mob-nav-${t}`);
+                if (mobNav) mobNav.className = 'mobile-tab-btn flex flex-col items-center text-gray-400 text-[10px]';
+            });
+
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            const deskActive = document.getElementById(`nav-${tabName}`);
+            if (deskActive) {
+                deskActive.classList.add('bg-purple-600/40', 'text-white', 'border', 'border-purple-500/40');
+                deskActive.classList.remove('text-gray-300');
+            }
+            const mobActive = document.getElementById(`mob-nav-${tabName}`);
+            if (mobActive) mobActive.className = 'mobile-tab-btn flex flex-col items-center text-cyan-400 text-[10px] font-bold';
+            if (tabName === 'settings') updateStorageInfo();
+        }
+
+        function renderAllViews() {
+            renderHomeLibrary();
+            renderFullLibrary();
+            renderFavorites();
+            renderRecentlyPlayed();
+            renderPlaylists();
+        }
+
+        function renderHomeLibrary() {
+            const container = document.getElementById('home-library-grid');
+            if (songs.length === 0) {
+                container.innerHTML = `<div class="col-span-full py-10 text-center glass-panel rounded-2xl"><p class="text-gray-300 text-xs font-bold">No Songs Uploaded Yet</p></div>`;
+                return;
+            }
+            container.innerHTML = songs.slice(0, 10).map((song, i) => `
+        <div onclick="playSong(${i})" class="glass-card p-3 rounded-xl cursor-pointer group">
+          <div class="w-full aspect-square rounded-lg bg-gradient-nexus flex items-center justify-center relative mb-2">
+            <i class="fa-solid fa-music text-2xl text-white/90"></i>
+          </div>
+          <h4 class="font-bold text-xs text-white truncate">${song.title}</h4>
+          <p class="text-[10px] text-gray-300 truncate">${song.artist}</p>
+        </div>
+      `).join('');
+        }
+
+        function renderFullLibrary() {
+            const container = document.getElementById('full-library-list');
+            if (songs.length === 0) { container.innerHTML = `<p class="text-gray-300 text-xs text-center py-6">Library is empty.</p>`; return; }
+            container.innerHTML = songs.map((song, i) => `
+        <div onclick="playSong(${i})" class="glass-card p-2.5 rounded-xl flex items-center justify-between cursor-pointer">
+          <div class="flex items-center space-x-3 min-w-0 flex-1">
+            <div class="w-8 h-8 rounded-lg bg-purple-900/60 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-music text-purple-300 text-xs"></i></div>
+            <div class="min-w-0"><h4 class="font-bold text-xs text-white truncate">${song.title}</h4><p class="text-[10px] text-gray-300 truncate">${song.artist}</p></div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button onclick="toggleFavorite('${song.id}', event)" class="text-gray-300 hover:text-pink-500"><i class="${favorites.has(song.id) ? 'fa-solid fa-heart text-pink-500' : 'fa-regular fa-heart'}"></i></button>
+            <button onclick="removeSong('${song.id}', event)" class="text-gray-400 hover:text-red-400"><i class="fa-solid fa-trash-can text-xs"></i></button>
+          </div>
+        </div>
+      `).join('');
+        }
+
+        function renderFavorites() {
+            const container = document.getElementById('favorites-list');
+            const favSongs = songs.filter(s => favorites.has(s.id));
+            if (favSongs.length === 0) { container.innerHTML = `<p class="text-gray-300 text-xs text-center py-6">No favorites added.</p>`; return; }
+            container.innerHTML = favSongs.map(song => {
+                const origIdx = songs.findIndex(s => s.id === song.id);
+                return `<div onclick="playSong(${origIdx})" class="glass-card p-2.5 rounded-xl flex items-center justify-between cursor-pointer"><h4 class="font-bold text-xs text-white">${song.title}</h4></div>`;
+            }).join('');
+        }
+
+        function renderRecentlyPlayed() {
+            const container = document.getElementById('recent-grid');
+            if (recentlyPlayed.length === 0) { container.innerHTML = `<p class="text-gray-300 text-[10px] col-span-full">No recent history.</p>`; return; }
+            container.innerHTML = recentlyPlayed.map(song => {
+                const origIdx = songs.findIndex(s => s.id === song.id);
+                return `<div onclick="playSong(${origIdx})" class="glass-card p-2.5 rounded-xl cursor-pointer"><h4 class="font-bold text-[10px] text-white truncate">${song.title}</h4></div>`;
+            }).join('');
+        }
+
+        function renderPlaylists() {
+            document.getElementById('playlist-grid').innerHTML = ['Workout Mix', 'Chill Vibes'].map(pl => `
+        <div class="glass-card p-4 rounded-xl cursor-pointer"><h4 class="font-bold text-xs text-white">${pl}</h4><p class="text-[10px] text-gray-300">0 songs</p></div>
+      `).join('');
+        }
+
+        function handleSearch(query) {
+            if (!query.trim()) { renderFullLibrary(); return; }
+            const filtered = songs.filter(s => s.title.toLowerCase().includes(query.toLowerCase()));
+            document.getElementById('full-library-list').innerHTML = filtered.map(song => `
+        <div class="glass-card p-2.5 rounded-xl flex items-center justify-between"><h4 class="font-bold text-xs text-white">${song.title}</h4></div>
+      `).join('');
+            switchTab('library');
+        }
+
+        function initCanvasBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let w, h;
+            function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize);
+            resize();
+            const stars = Array.from({ length: 100 }, () => ({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.8 + 0.5, a: Math.random(), s: Math.random() * 0.007 + 0.002 }));
+            function animate() {
+                ctx.clearRect(0, 0, w, h);
+                const g1 = ctx.createRadialGradient(w * 0.2, h * 0.3, 50, w * 0.2, h * 0.3, 400);
+                g1.addColorStop(0, 'rgba(157, 78, 221, 0.3)'); g1.addColorStop(1, 'transparent');
+                ctx.fillStyle = g1; ctx.fillRect(0, 0, w, h);
+                stars.forEach(s => {
+                    s.a += s.s; if (s.a > 1 || s.a < 0) s.s = -s.s;
+                    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(s.a)})`; ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function setupWebAudio() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                const source = audioCtx.createMediaElementSource(audio);
+                source.connect(analyser); analyser.connect(audioCtx.destination);
+                analyser.fftSize = 64; dataArray = new Uint8Array(analyser.frequencyBinCount);
+            } catch (e) { }
+        }
+
+        function initWaveformVisualizer() {
+            const canvas = document.getElementById('waveform-canvas');
+            const ctx = canvas.getContext('2d');
+            function render() {
+                canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (analyser && isPlaying) {
+                    analyser.getByteFrequencyData(dataArray);
+                    ctx.beginPath(); ctx.moveTo(0, canvas.height / 2);
+                    let x = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const y = (1 - (dataArray[i] / 255.0)) * canvas.height;
+                        ctx.lineTo(x, y); x += (canvas.width / dataArray.length) * 1.5;
+                    }
+                    ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2; ctx.stroke();
+                }
+                requestAnimationFrame(render);
+            }
+            render();
+        }
+
+        function formatTime(secs) {
+            if (isNaN(secs)) return '00:00';
+            const m = Math.floor(secs / 60), s = Math.floor(secs % 60);
+            return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        async function updateStorageInfo() {
+            if (navigator.storage && navigator.storage.estimate) {
+                const est = await navigator.storage.estimate();
+                document.getElementById('storage-status').textContent = `Using ~${(est.usage / (1024 * 1024)).toFixed(2)} MB of local storage`;
+            }
+        }
+
+        async function clearAllData() {
+            if (confirm('Delete all stored music?')) {
+                const tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').clear();
+                songs = []; favorites.clear(); localStorage.removeItem('nexus_favs'); renderAllViews(); audio.pause(); isPlaying = false;
+            }
+        }
+    </script>
+</body>
+
+</html>
